@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/gyroscopic-spike/static/css/main.f855e6bc.css",
-    "main.js": "/gyroscopic-spike/static/js/main.0d1c5b13.js",
+    "main.js": "/gyroscopic-spike/static/js/main.3c522b99.js",
     "static/js/453.4d848141.chunk.js": "/gyroscopic-spike/static/js/453.4d848141.chunk.js",
     "index.html": "/gyroscopic-spike/index.html",
     "main.f855e6bc.css.map": "/gyroscopic-spike/static/css/main.f855e6bc.css.map",
-    "main.0d1c5b13.js.map": "/gyroscopic-spike/static/js/main.0d1c5b13.js.map",
+    "main.3c522b99.js.map": "/gyroscopic-spike/static/js/main.3c522b99.js.map",
     "453.4d848141.chunk.js.map": "/gyroscopic-spike/static/js/453.4d848141.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.f855e6bc.css",
-    "static/js/main.0d1c5b13.js"
+    "static/js/main.3c522b99.js"
   ]
 }

@@ -25,6 +25,13 @@ type ChartPoint = {
   z: number
 }
 
+type AccelPoint = {
+  timestamp: number
+  x: number
+  y: number
+  z: number
+}
+
 type MotionPermissionResult = 'granted' | 'denied'
 
 type MotionEventConstructorWithPermission = typeof DeviceMotionEvent & {
@@ -50,32 +57,48 @@ export const ComponentWithGyroscope = () => {
   const [angularVelocity, setAngularVelocity] =
     useState<AngularVelocity>(EMPTY_ANGULAR_VELOCITY)
 
-  const [chartData, setChartData] = useState<ChartPoint[]>([])
+  const [gyroData, setGyroData] = useState<ChartPoint[]>([])
+  const [accelData, setAccelData] = useState<AccelPoint[]>([])
+
   const [isListening, setIsListening] = useState(false)
   const [status, setStatus] = useState('Checking sensor support...')
 
   const handleMotion = useCallback((event: DeviceMotionEvent) => {
-    const x = event.rotationRate?.beta ?? 0
-    const y = event.rotationRate?.gamma ?? 0
-    const z = event.rotationRate?.alpha ?? 0
+    // -------- GYRO --------
+    const gx = event.rotationRate?.beta ?? 0
+    const gy = event.rotationRate?.gamma ?? 0
+    const gz = event.rotationRate?.alpha ?? 0
 
-    setAngularVelocity({
-      x,
-      y,
-      z,
-    })
+    setAngularVelocity({ x: gx, y: gy, z: gz })
 
-    setChartData(prev => {
+    setGyroData(prev => {
       const next = [
         ...prev,
         {
           timestamp: Date.now(),
-          x,
-          y,
-          z,
+          x: gx,
+          y: gy,
+          z: gz,
         },
       ]
+      return next.slice(-MAX_POINTS)
+    })
 
+    // -------- ACCELEROMETER --------
+    const ax = event.accelerationIncludingGravity?.x ?? 0
+    const ay = event.accelerationIncludingGravity?.y ?? 0
+    const az = event.accelerationIncludingGravity?.z ?? 0
+
+    setAccelData(prev => {
+      const next = [
+        ...prev,
+        {
+          timestamp: Date.now(),
+          x: ax,
+          y: ay,
+          z: az,
+        },
+      ]
       return next.slice(-MAX_POINTS)
     })
   }, [])
@@ -83,26 +106,25 @@ export const ComponentWithGyroscope = () => {
   const stopListening = useCallback(() => {
     window.removeEventListener('devicemotion', handleMotion)
     setIsListening(false)
-    setStatus('Gyroscope stopped.')
+    setStatus('Stopped.')
   }, [handleMotion])
 
   const startListening = useCallback(() => {
     if (!hasDeviceMotionSupport()) {
-      setStatus('This device or browser does not expose gyroscope data.')
+      setStatus('No motion support on this device.')
       return false
     }
 
     window.addEventListener('devicemotion', handleMotion)
 
     setIsListening(true)
-    setStatus('Listening for gyroscope updates.')
-
+    setStatus('Listening for motion...')
     return true
   }, [handleMotion])
 
   const requestPermissionAndStart = useCallback(async () => {
     if (!hasDeviceMotionSupport()) {
-      setStatus('This device or browser does not expose gyroscope data.')
+      setStatus('No motion support on this device.')
       return false
     }
 
@@ -112,18 +134,18 @@ export const ComponentWithGyroscope = () => {
       isIOS &&
       typeof deviceMotionEvent.requestPermission === 'function'
     ) {
-      setStatus('Requesting iOS motion permission...')
+      setStatus('Requesting iOS permission...')
 
       try {
         const permission =
           await deviceMotionEvent.requestPermission()
 
         if (permission !== 'granted') {
-          setStatus('Motion permission was denied.')
+          setStatus('Permission denied.')
           return false
         }
       } catch {
-        setStatus('Motion permission request failed.')
+        setStatus('Permission error.')
         return false
       }
     }
@@ -133,23 +155,13 @@ export const ComponentWithGyroscope = () => {
 
   useEffect(() => {
     if (!hasDeviceMotionSupport()) {
-      setStatus('This device or browser does not expose gyroscope data.')
+      setStatus('No motion support.')
       return
     }
 
-    if (isIOS) {
-      const deviceMotionEvent = getMotionEventConstructor()
-
-      if (typeof deviceMotionEvent.requestPermission === 'function') {
-        setStatus('Tap enable to allow gyroscope access on iOS.')
-
-        return () => {
-          stopListening()
-        }
-      }
+    if (!isIOS) {
+      startListening()
     }
-
-    startListening()
 
     return () => {
       stopListening()
@@ -158,110 +170,60 @@ export const ComponentWithGyroscope = () => {
 
   return (
     <div style={{ padding: 24 }}>
-      <h2>Gyroscope Spike</h2>
+      <h2>Motion Spike (Gyro + Accelerometer)</h2>
 
       <p>{status}</p>
 
-      {isIOS &&
-        !isListening &&
-        hasDeviceMotionSupport() && (
-          <button
-            onClick={() => {
-              void requestPermissionAndStart()
-            }}
-          >
-            Enable Gyroscope
-          </button>
-        )}
-
-      {!isIOS &&
-        !isListening &&
-        hasDeviceMotionSupport() && (
-          <button onClick={startListening}>
-            Start Gyroscope
-          </button>
-        )}
-
-      {isListening && (
-        <button onClick={stopListening}>
-          Stop Gyroscope
+      {isIOS && !isListening && (
+        <button onClick={() => void requestPermissionAndStart()}>
+          Enable Motion Sensors
         </button>
       )}
 
+      {isListening && (
+        <button onClick={stopListening}>
+          Stop
+        </button>
+      )}
+
+      {/* -------- GYROSCOPE VALUES -------- */}
       <div style={{ marginTop: 24 }}>
-        <p>
-          X Angular Velocity:{' '}
-          {angularVelocity.x == null
-            ? 'Waiting for data'
-            : `${angularVelocity.x.toFixed(1)} deg/s`}
-        </p>
-
-        <p>
-          Y Angular Velocity:{' '}
-          {angularVelocity.y == null
-            ? 'Waiting for data'
-            : `${angularVelocity.y.toFixed(1)} deg/s`}
-        </p>
-
-        <p>
-          Z Angular Velocity:{' '}
-          {angularVelocity.z == null
-            ? 'Waiting for data'
-            : `${angularVelocity.z.toFixed(1)} deg/s`}
-        </p>
+        <h3>Gyroscope</h3>
+        <p>X: {angularVelocity.x?.toFixed(1)}</p>
+        <p>Y: {angularVelocity.y?.toFixed(1)}</p>
+        <p>Z: {angularVelocity.z?.toFixed(1)}</p>
       </div>
 
-      <div
-        style={{
-          width: '100%',
-          height: 400,
-          marginTop: 32,
-        }}
-      >
+      {/* -------- GYROSCOPE CHART -------- */}
+      <div style={{ width: '100%', height: 300, marginTop: 24 }}>
+        <h3>Gyroscope Chart</h3>
         <ResponsiveContainer>
-          <LineChart data={chartData}>
+          <LineChart data={gyroData}>
             <CartesianGrid strokeDasharray="3 3" />
-
-            <XAxis
-              dataKey="timestamp"
-              tickFormatter={value =>
-                new Date(value).toLocaleTimeString()
-              }
-            />
-
+            <XAxis dataKey="timestamp" hide />
             <YAxis />
-
-            <Tooltip
-              labelFormatter={value =>
-                new Date(Number(value)).toLocaleTimeString()
-              }
-            />
-
+            <Tooltip />
             <Legend />
+            <Line dataKey="x" stroke="#8884d8" dot={false} />
+            <Line dataKey="y" stroke="#82ca9d" dot={false} />
+            <Line dataKey="z" stroke="#ff7300" dot={false} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
 
-            <Line
-              type="monotone"
-              dataKey="x"
-              stroke="#8884d8"
-              dot={false}
-              name="X Axis"
-            />
-
-            <Line
-              type="monotone"
-              dataKey="y"
-              stroke="#82ca9d"
-              dot={false}
-              name="Y Axis"
-            />
-
-            <Line
-              type="monotone"
-              dataKey="z"
-              stroke="#ff7300"
-              dot={false}
-              name="Z Axis"
-            />
+      {/* -------- ACCELEROMETER CHART -------- */}
+      <div style={{ width: '100%', height: 300, marginTop: 24 }}>
+        <h3>Accelerometer (incl. gravity)</h3>
+        <ResponsiveContainer>
+          <LineChart data={accelData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="timestamp" hide />
+            <YAxis />
+            <Tooltip />
+            <Legend />
+            <Line dataKey="x" stroke="#8884d8" dot={false} />
+            <Line dataKey="y" stroke="#82ca9d" dot={false} />
+            <Line dataKey="z" stroke="#ff7300" dot={false} />
           </LineChart>
         </ResponsiveContainer>
       </div>

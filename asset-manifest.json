@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/gryo/static/css/main.f855e6bc.css",
-    "main.js": "/gryo/static/js/main.5d8d1093.js",
-    "static/js/453.4d848141.chunk.js": "/gryo/static/js/453.4d848141.chunk.js",
-    "index.html": "/gryo/index.html",
-    "main.f855e6bc.css.map": "/gryo/static/css/main.f855e6bc.css.map",
-    "main.5d8d1093.js.map": "/gryo/static/js/main.5d8d1093.js.map",
-    "453.4d848141.chunk.js.map": "/gryo/static/js/453.4d848141.chunk.js.map"
+    "main.css": "/gyroscopic-spike/static/css/main.f855e6bc.css",
+    "main.js": "/gyroscopic-spike/static/js/main.52bb9581.js",
+    "static/js/453.4d848141.chunk.js": "/gyroscopic-spike/static/js/453.4d848141.chunk.js",
+    "index.html": "/gyroscopic-spike/index.html",
+    "main.f855e6bc.css.map": "/gyroscopic-spike/static/css/main.f855e6bc.css.map",
+    "main.52bb9581.js.map": "/gyroscopic-spike/static/js/main.52bb9581.js.map",
+    "453.4d848141.chunk.js.map": "/gyroscopic-spike/static/js/453.4d848141.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.f855e6bc.css",
-    "static/js/main.5d8d1093.js"
+    "static/js/main.52bb9581.js"
   ]
 }

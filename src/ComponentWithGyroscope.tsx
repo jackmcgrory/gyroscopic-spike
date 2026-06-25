@@ -1,17 +1,24 @@
-import { useEffect, useState } from 'react'
-import useGyroscope from 'react-hook-gyroscope'
+import { useCallback, useEffect, useState } from 'react'
+import { isIOS } from 'react-device-detect'
+
 import {
+  ResponsiveContainer,
   LineChart,
   Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer,
   Legend,
 } from 'recharts'
 
-type GyroPoint = {
+type AngularVelocity = {
+  x: number | null
+  y: number | null
+  z: number | null
+}
+
+type ChartPoint = {
   time: number
   x: number
   y: number
@@ -21,42 +28,86 @@ type GyroPoint = {
 const MAX_POINTS = 100
 
 export const ComponentWithGyroscope = () => {
-  const gyroscope = useGyroscope()
-  const [data, setData] = useState<GyroPoint[]>([])
+  const [angularVelocity, setAngularVelocity] = useState<AngularVelocity>({
+    x: null,
+    y: null,
+    z: null,
+  })
 
-  useEffect(() => {
-    if (gyroscope.error) return
+  const [chartData, setChartData] = useState<ChartPoint[]>([])
+  const [isListening, setIsListening] = useState(false)
+  const [status, setStatus] = useState('Checking sensor support...')
 
-    setData(prev => {
+  const handleMotion = useCallback((event: DeviceMotionEvent) => {
+    const x = event.rotationRate?.beta ?? 0
+    const y = event.rotationRate?.gamma ?? 0
+    const z = event.rotationRate?.alpha ?? 0
+
+    setAngularVelocity({ x, y, z })
+
+    setChartData(prev => {
       const next = [
         ...prev,
         {
           time: Date.now(),
-          x: gyroscope.x ?? 0,
-          y: gyroscope.y ?? 0,
-          z: gyroscope.z ?? 0,
+          x,
+          y,
+          z,
         },
       ]
 
       return next.slice(-MAX_POINTS)
     })
-  }, [gyroscope.x, gyroscope.y, gyroscope.z, gyroscope.error])
+  }, [])
 
-  if (gyroscope.error) {
-    return <p>No gyroscope, sorry.</p>
-  }
+  const startListening = useCallback(() => {
+    window.addEventListener('devicemotion', handleMotion)
+    setIsListening(true)
+    setStatus('Listening for gyroscope updates.')
+  }, [handleMotion])
+
+  const stopListening = useCallback(() => {
+    window.removeEventListener('devicemotion', handleMotion)
+    setIsListening(false)
+  }, [handleMotion])
+
+  useEffect(() => {
+    return () => {
+      window.removeEventListener('devicemotion', handleMotion)
+    }
+  }, [handleMotion])
 
   return (
-    <div>
-      <ul>
-        <li>X: {gyroscope.x}</li>
-        <li>Y: {gyroscope.y}</li>
-        <li>Z: {gyroscope.z}</li>
-      </ul>
+    <div style={{ padding: 24 }}>
+      <h2>Gyroscope Spike</h2>
 
-      <div style={{ width: '100%', height: 400 }}>
+      <p>{status}</p>
+
+      {!isListening ? (
+        <button onClick={startListening}>
+          {isIOS ? 'Enable Gyroscope' : 'Start Gyroscope'}
+        </button>
+      ) : (
+        <button onClick={stopListening}>
+          Stop Gyroscope
+        </button>
+      )}
+
+      <div style={{ marginTop: 24 }}>
+        <p>X: {angularVelocity.x?.toFixed(2)}</p>
+        <p>Y: {angularVelocity.y?.toFixed(2)}</p>
+        <p>Z: {angularVelocity.z?.toFixed(2)}</p>
+      </div>
+
+      <div
+        style={{
+          width: '100%',
+          height: 400,
+          marginTop: 32,
+        }}
+      >
         <ResponsiveContainer>
-          <LineChart data={data}>
+          <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" />
 
             <XAxis
@@ -81,7 +132,7 @@ export const ComponentWithGyroscope = () => {
               dataKey="x"
               stroke="#8884d8"
               dot={false}
-              name="X"
+              name="X Axis"
             />
 
             <Line
@@ -89,7 +140,7 @@ export const ComponentWithGyroscope = () => {
               dataKey="y"
               stroke="#82ca9d"
               dot={false}
-              name="Y"
+              name="Y Axis"
             />
 
             <Line
@@ -97,7 +148,7 @@ export const ComponentWithGyroscope = () => {
               dataKey="z"
               stroke="#ff7300"
               dot={false}
-              name="Z"
+              name="Z Axis"
             />
           </LineChart>
         </ResponsiveContainer>

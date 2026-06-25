@@ -25,11 +25,9 @@ type ChartPoint = {
   z: number
 }
 
-type AccelPoint = {
+type SpikePoint = {
   timestamp: number
-  x: number
-  y: number
-  z: number
+  value: number
 }
 
 type MotionPermissionResult = 'granted' | 'denied'
@@ -58,7 +56,7 @@ export const ComponentWithGyroscope = () => {
     useState<AngularVelocity>(EMPTY_ANGULAR_VELOCITY)
 
   const [gyroData, setGyroData] = useState<ChartPoint[]>([])
-  const [accelData, setAccelData] = useState<AccelPoint[]>([])
+  const [spikeData, setSpikeData] = useState<SpikePoint[]>([])
 
   const [isListening, setIsListening] = useState(false)
   const [status, setStatus] = useState('Checking sensor support...')
@@ -84,19 +82,21 @@ export const ComponentWithGyroscope = () => {
       return next.slice(-MAX_POINTS)
     })
 
-    // -------- ACCELEROMETER --------
+    // -------- ACCEL SPIKE (MAGNITUDE - GRAVITY) --------
     const ax = event.accelerationIncludingGravity?.x ?? 0
     const ay = event.accelerationIncludingGravity?.y ?? 0
     const az = event.accelerationIncludingGravity?.z ?? 0
 
-    setAccelData(prev => {
+    const magnitude = Math.sqrt(ax * ax + ay * ay + az * az)
+
+    const spike = Math.abs(magnitude - 9.8)
+
+    setSpikeData(prev => {
       const next = [
         ...prev,
         {
           timestamp: Date.now(),
-          x: ax,
-          y: ay,
-          z: az,
+          value: spike,
         },
       ]
       return next.slice(-MAX_POINTS)
@@ -170,7 +170,7 @@ export const ComponentWithGyroscope = () => {
 
   return (
     <div style={{ padding: 24 }}>
-      <h2>Motion Spike (Gyro + Accelerometer)</h2>
+      <h2>Motion Spike Detector</h2>
 
       <p>{status}</p>
 
@@ -211,19 +211,23 @@ export const ComponentWithGyroscope = () => {
         </ResponsiveContainer>
       </div>
 
-      {/* -------- ACCELEROMETER CHART -------- */}
+      {/* -------- SPIKE CHART -------- */}
       <div style={{ width: '100%', height: 300, marginTop: 24 }}>
-        <h3>Accelerometer (incl. gravity)</h3>
+        <h3>Motion Spike (|accel magnitude - gravity|)</h3>
+
         <ResponsiveContainer>
-          <LineChart data={accelData}>
+          <LineChart data={spikeData}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="timestamp" hide />
             <YAxis />
             <Tooltip />
             <Legend />
-            <Line dataKey="x" stroke="#8884d8" dot={false} />
-            <Line dataKey="y" stroke="#82ca9d" dot={false} />
-            <Line dataKey="z" stroke="#ff7300" dot={false} />
+            <Line
+              dataKey="value"
+              stroke="#ff7300"
+              dot={false}
+              name="Spike Strength"
+            />
           </LineChart>
         </ResponsiveContainer>
       </div>

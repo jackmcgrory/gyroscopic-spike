@@ -193,21 +193,21 @@ export const ComponentWithGyroscope = () => {
           X Angular Velocity:{' '}
           {angularVelocity.x == null
             ? 'Waiting for data'
-            : `${angularVelocity.x.toFixed(2)} deg/s`}
+            : `${angularVelocity.x.toFixed(1)} deg/s`}
         </p>
 
         <p>
           Y Angular Velocity:{' '}
           {angularVelocity.y == null
             ? 'Waiting for data'
-            : `${angularVelocity.y.toFixed(2)} deg/s`}
+            : `${angularVelocity.y.toFixed(1)} deg/s`}
         </p>
 
         <p>
           Z Angular Velocity:{' '}
           {angularVelocity.z == null
             ? 'Waiting for data'
-            : `${angularVelocity.z.toFixed(2)} deg/s`}
+            : `${angularVelocity.z.toFixed(1)} deg/s`}
         </p>
       </div>
 

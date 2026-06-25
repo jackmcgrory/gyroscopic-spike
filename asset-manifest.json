@@ -1,16 +1,15 @@
 {
   "files": {
-    "main.css": "/gyroscope/static/css/main.f855e6bc.css",
-    "main.js": "/gyroscope/static/js/main.4a36f2c9.js",
-    "static/js/453.4d848141.chunk.js": "/gyroscope/static/js/453.4d848141.chunk.js",
-    "static/media/logo.svg": "/gyroscope/static/media/logo.6ce24c58023cc2f8fd88fe9d219db6c6.svg",
-    "index.html": "/gyroscope/index.html",
-    "main.f855e6bc.css.map": "/gyroscope/static/css/main.f855e6bc.css.map",
-    "main.4a36f2c9.js.map": "/gyroscope/static/js/main.4a36f2c9.js.map",
-    "453.4d848141.chunk.js.map": "/gyroscope/static/js/453.4d848141.chunk.js.map"
+    "main.css": "/gryo/static/css/main.f855e6bc.css",
+    "main.js": "/gryo/static/js/main.5d8d1093.js",
+    "static/js/453.4d848141.chunk.js": "/gryo/static/js/453.4d848141.chunk.js",
+    "index.html": "/gryo/index.html",
+    "main.f855e6bc.css.map": "/gryo/static/css/main.f855e6bc.css.map",
+    "main.5d8d1093.js.map": "/gryo/static/js/main.5d8d1093.js.map",
+    "453.4d848141.chunk.js.map": "/gryo/static/js/453.4d848141.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.f855e6bc.css",
-    "static/js/main.4a36f2c9.js"
+    "static/js/main.5d8d1093.js"
   ]
 }

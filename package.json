@@ -1,7 +1,7 @@
 {
   "name": "gyroscopic-spike",
   "version": "0.1.0",
-  "homepage": "https://jackmcgrory.github.io/gryo",
+  "homepage": "https://jackmcgrory.github.io/gyroscopic-spike/",
   "private": true,
   "dependencies": {
     "@testing-library/dom": "^10.4.1",

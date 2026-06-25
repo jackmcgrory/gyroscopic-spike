@@ -19,20 +19,36 @@ type AngularVelocity = {
 }
 
 type ChartPoint = {
-  time: number
+  timestamp: number
   x: number
   y: number
   z: number
 }
 
+type MotionPermissionResult = 'granted' | 'denied'
+
+type MotionEventConstructorWithPermission = typeof DeviceMotionEvent & {
+  requestPermission?: () => Promise<MotionPermissionResult>
+}
+
+const EMPTY_ANGULAR_VELOCITY: AngularVelocity = {
+  x: null,
+  y: null,
+  z: null,
+}
+
 const MAX_POINTS = 100
 
+const hasDeviceMotionSupport = () =>
+  typeof window !== 'undefined' &&
+  typeof window.DeviceMotionEvent !== 'undefined'
+
+const getMotionEventConstructor = () =>
+  window.DeviceMotionEvent as MotionEventConstructorWithPermission
+
 export const ComponentWithGyroscope = () => {
-  const [angularVelocity, setAngularVelocity] = useState<AngularVelocity>({
-    x: null,
-    y: null,
-    z: null,
-  })
+  const [angularVelocity, setAngularVelocity] =
+    useState<AngularVelocity>(EMPTY_ANGULAR_VELOCITY)
 
   const [chartData, setChartData] = useState<ChartPoint[]>([])
   const [isListening, setIsListening] = useState(false)
@@ -43,13 +59,17 @@ export const ComponentWithGyroscope = () => {
     const y = event.rotationRate?.gamma ?? 0
     const z = event.rotationRate?.alpha ?? 0
 
-    setAngularVelocity({ x, y, z })
+    setAngularVelocity({
+      x,
+      y,
+      z,
+    })
 
     setChartData(prev => {
       const next = [
         ...prev,
         {
-          time: Date.now(),
+          timestamp: Date.now(),
           x,
           y,
           z,
@@ -60,22 +80,81 @@ export const ComponentWithGyroscope = () => {
     })
   }, [])
 
-  const startListening = useCallback(() => {
-    window.addEventListener('devicemotion', handleMotion)
-    setIsListening(true)
-    setStatus('Listening for gyroscope updates.')
-  }, [handleMotion])
-
   const stopListening = useCallback(() => {
     window.removeEventListener('devicemotion', handleMotion)
     setIsListening(false)
+    setStatus('Gyroscope stopped.')
   }, [handleMotion])
 
-  useEffect(() => {
-    return () => {
-      window.removeEventListener('devicemotion', handleMotion)
+  const startListening = useCallback(() => {
+    if (!hasDeviceMotionSupport()) {
+      setStatus('This device or browser does not expose gyroscope data.')
+      return false
     }
+
+    window.addEventListener('devicemotion', handleMotion)
+
+    setIsListening(true)
+    setStatus('Listening for gyroscope updates.')
+
+    return true
   }, [handleMotion])
+
+  const requestPermissionAndStart = useCallback(async () => {
+    if (!hasDeviceMotionSupport()) {
+      setStatus('This device or browser does not expose gyroscope data.')
+      return false
+    }
+
+    const deviceMotionEvent = getMotionEventConstructor()
+
+    if (
+      isIOS &&
+      typeof deviceMotionEvent.requestPermission === 'function'
+    ) {
+      setStatus('Requesting iOS motion permission...')
+
+      try {
+        const permission =
+          await deviceMotionEvent.requestPermission()
+
+        if (permission !== 'granted') {
+          setStatus('Motion permission was denied.')
+          return false
+        }
+      } catch {
+        setStatus('Motion permission request failed.')
+        return false
+      }
+    }
+
+    return startListening()
+  }, [startListening])
+
+  useEffect(() => {
+    if (!hasDeviceMotionSupport()) {
+      setStatus('This device or browser does not expose gyroscope data.')
+      return
+    }
+
+    if (isIOS) {
+      const deviceMotionEvent = getMotionEventConstructor()
+
+      if (typeof deviceMotionEvent.requestPermission === 'function') {
+        setStatus('Tap enable to allow gyroscope access on iOS.')
+
+        return () => {
+          stopListening()
+        }
+      }
+    }
+
+    startListening()
+
+    return () => {
+      stopListening()
+    }
+  }, [startListening, stopListening])
 
   return (
     <div style={{ padding: 24 }}>
@@ -83,20 +162,53 @@ export const ComponentWithGyroscope = () => {
 
       <p>{status}</p>
 
-      {!isListening ? (
-        <button onClick={startListening}>
-          {isIOS ? 'Enable Gyroscope' : 'Start Gyroscope'}
-        </button>
-      ) : (
+      {isIOS &&
+        !isListening &&
+        hasDeviceMotionSupport() && (
+          <button
+            onClick={() => {
+              void requestPermissionAndStart()
+            }}
+          >
+            Enable Gyroscope
+          </button>
+        )}
+
+      {!isIOS &&
+        !isListening &&
+        hasDeviceMotionSupport() && (
+          <button onClick={startListening}>
+            Start Gyroscope
+          </button>
+        )}
+
+      {isListening && (
         <button onClick={stopListening}>
           Stop Gyroscope
         </button>
       )}
 
       <div style={{ marginTop: 24 }}>
-        <p>X: {angularVelocity.x?.toFixed(2)}</p>
-        <p>Y: {angularVelocity.y?.toFixed(2)}</p>
-        <p>Z: {angularVelocity.z?.toFixed(2)}</p>
+        <p>
+          X Angular Velocity:{' '}
+          {angularVelocity.x == null
+            ? 'Waiting for data'
+            : `${angularVelocity.x.toFixed(2)} deg/s`}
+        </p>
+
+        <p>
+          Y Angular Velocity:{' '}
+          {angularVelocity.y == null
+            ? 'Waiting for data'
+            : `${angularVelocity.y.toFixed(2)} deg/s`}
+        </p>
+
+        <p>
+          Z Angular Velocity:{' '}
+          {angularVelocity.z == null
+            ? 'Waiting for data'
+            : `${angularVelocity.z.toFixed(2)} deg/s`}
+        </p>
       </div>
 
       <div
@@ -111,8 +223,8 @@ export const ComponentWithGyroscope = () => {
             <CartesianGrid strokeDasharray="3 3" />
 
             <XAxis
-              dataKey="time"
-              tickFormatter={(value) =>
+              dataKey="timestamp"
+              tickFormatter={value =>
                 new Date(value).toLocaleTimeString()
               }
             />
@@ -120,7 +232,7 @@ export const ComponentWithGyroscope = () => {
             <YAxis />
 
             <Tooltip
-              labelFormatter={(value) =>
+              labelFormatter={value =>
                 new Date(Number(value)).toLocaleTimeString()
               }
             />
@@ -156,3 +268,5 @@ export const ComponentWithGyroscope = () => {
     </div>
   )
 }
+
+export default ComponentWithGyroscope
